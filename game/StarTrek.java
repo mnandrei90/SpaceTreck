@@ -1,7 +1,6 @@
-import java.awt.Canvas;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics2D;
+import javafx.scene.input.KeyCode;
+
+import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
@@ -24,9 +23,18 @@ class MyKeyListener implements KeyListener {
 	}
 
 	@Override public void keyPressed(KeyEvent e) {
+	    if (e.getKeyCode() == KeyEvent.VK_A) {
+            starTrek.getPlayer().move(-1, starTrek.getDelta());
+        }
+        if (e.getKeyCode() == KeyEvent.VK_D) {
+            starTrek.getPlayer().move(1, starTrek.getDelta());
+        }
 	}
 
 	@Override public void keyReleased(KeyEvent e) {
+        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+            starTrek.createBullet();
+        }
 	}
 }
 
@@ -67,27 +75,35 @@ public class StarTrek extends Canvas {
 	}
 	
 	private void initEntities() {
+		EntityCreator playerCreator = new PlayerCreator();
 		entities = new ArrayList<>();
 		toBeRemoved = new ArrayList<>();
-		Entity e1 = new Entity(this, 10, 10, 100, 100);
-		Entity e2 = new Entity(this, 500, 500, 100, 100);
-		e1.setSpeedX(100);
-		e1.setSpeedY(100);
-		e2.setSpeedX(-100);
-		e2.setSpeedY(-100);
-		entities.add(e1);
-		entities.add(e2);
+
+		Entity player = playerCreator.createEntity();  //new Entity(this, 10, 10, 100, 100);
+//		Entity e2 = creator.createEntity(); //new Entity(this, 500, 500, 100, 100);
+        Sprite playerSprite = new Sprite("Player.png", 50, 62);
+        player.init(this, 400, 510, playerSprite, EntityType.Player);
+        player.setSpeedX(300);
+//        player.setSpeedY(100);
+//      e1.setSpeedX(100);
+//		e1.setSpeedY(100);
+//		e2.setSpeedX(-100);
+//		e2.setSpeedY(-100);
+		entities.add(player);
+//		entities.add(e2);
 	}
 	
 	public void startGame() {
 		initEntities();
 		gameRunning = true;
 	}
-	
+
+    private long delta;
+
 	public void gameLoop() {
 		long lastLoopMillis = System.currentTimeMillis();
 		while(gameRunning) {
-			long delta = System.currentTimeMillis() - lastLoopMillis;
+			delta = System.currentTimeMillis() - lastLoopMillis;
 			lastLoopMillis = System.currentTimeMillis();
 
 			Graphics2D g = (Graphics2D) strategy.getDrawGraphics();
@@ -95,23 +111,24 @@ public class StarTrek extends Canvas {
 			g.fillRect(0, 0, 800, 600);
 			
 			for (Entity e : entities) {
-				e.move(delta);
+			    if (e.type == EntityType.Bullet)
+				    e.fly(-1, delta);
 			}
 			
 			for (Entity e : entities) {
 				e.draw(g);
 			}
 			
-			for (int i = 0; i < entities.size(); i++) {
-				for (int j = i + 1; j < entities.size(); j++) {
-					Entity e1 = entities.get(i);
-					Entity e2 = entities.get(j);
-					if (e1.collidesWith(e2)) {
-						e1.hasCollided(e2);
-						e2.hasCollided(e1);
-					}
-				}
-			}
+//			for (int i = 0; i < entities.size(); i++) {
+//				for (int j = i + 1; j < entities.size(); j++) {
+//					Entity e1 = entities.get(i);
+//					Entity e2 = entities.get(j);
+//					if (e1.collidesWith(e2)) {
+//						e1.hasCollided(e2);
+//						e2.hasCollided(e1);
+//					}
+//				}
+//			}
 			
 			g.dispose();  // draw complete => clear buffer
 			strategy.show();  // flip buffer
@@ -119,7 +136,23 @@ public class StarTrek extends Canvas {
 			try { Thread.sleep(10); } catch(InterruptedException e) {}
 		}
 	}
-	
+
+	public Player getPlayer(){
+	    for (Entity e : entities) {
+	        if (e.type == EntityType.Player)
+                return (Player) e;
+	    }
+	    return null;
+    }
+
+    public long getDelta() {
+	    return delta;
+    }
+
+    public void createBullet() {
+        entities.add(getPlayer().fire());
+    }
+
 	public static void main(String argv[]) {
 		StarTrek game = new StarTrek();
 		game.startGame();
